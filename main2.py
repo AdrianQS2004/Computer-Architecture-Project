@@ -3,8 +3,8 @@ CYCLE_COST = {
     '+': 1,
     '-': 1,
     '*': 2,
-    'Store': 1,  # Store operation cycle cost (simulated)
-    'Load': 1    # Load operation cycle cost (simulated)
+    'Store': 3,  # Store operation cycle cost (simulated)
+    'Load': 3    # Load operation cycle cost (simulated)
 }
 
 class Instruction:

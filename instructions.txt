@@ -8,4 +8,4 @@ R3 = R3 * R1
 R1 = R4 + R4
 R3 = R6 - R3
 R7 = Load
-Store = R3
+R3 = Store
