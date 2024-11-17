@@ -49,9 +49,83 @@ def load_instructions(file_path):
         instructions = [Instruction.parse(line.strip()) for line in f if line.strip()]
     return instructions
 
-# Load instructions and print them
-instructions = load_instructions("instructions.txt")
+class Scheduler:
+    def __init__(self):
+        self.busy_until = {}  # Tracks when each destination will be free
 
-# Print the instructions exactly as they are in the file
-for instruction in instructions:
-    print(instruction)
+    def is_ready(self, instruction, current_cycle):
+        # Check if dependencies (left_operand and right_operand) are resolved
+        if instruction.left_operand and instruction.left_operand in self.busy_until:
+            if current_cycle < self.busy_until[instruction.left_operand]:
+                return False
+        if instruction.right_operand and instruction.right_operand in self.busy_until:
+            if current_cycle < self.busy_until[instruction.right_operand]:
+                return False
+        return True
+
+    def reserve(self, instruction, current_cycle):
+        # Reserve the destination until the instruction's cycle cost completes
+        self.busy_until[instruction.dest] = current_cycle + instruction.cycle_cost
+
+
+class Processor:
+    def __init__(self, instructions):
+        self.instructions = instructions
+        self.scheduler = Scheduler()
+        self.current_cycle = 0
+        self.retired = set()  # Tracks indices of retired instructions
+        self.in_flight = None  # Currently issued instruction
+        self.wait_for_retire = False  # Flag to prevent issuing in the same cycle as retiring
+
+    def run(self):
+        instruction_index = 0
+        total_instructions = len(self.instructions)
+
+        # Print the header
+        print(f"{'Cycle':<10}{'Issued Instruction':<30}{'Retired Instruction':<20}")
+        print("-" * 60)
+
+        while instruction_index < total_instructions or self.in_flight:
+            self.current_cycle += 1
+
+            issued_instruction = ""
+            retired_instruction = ""
+
+            # Retire the instruction if its execution is completed
+            if self.in_flight:
+                dest = self.in_flight.dest
+                if self.scheduler.busy_until[dest] == self.current_cycle:
+                    retired_index = self.instructions.index(self.in_flight) + 1
+                    retired_instruction = f"Instruction {retired_index}"
+                    self.retired.add(retired_index)
+                    self.in_flight = None  # Clear the in-flight instruction
+                    self.wait_for_retire = True  # Ensure next cycle does not issue immediately
+
+            # Issue the next instruction if no instruction is in flight and no recent retirement
+            if not self.in_flight and not self.wait_for_retire and instruction_index < total_instructions:
+                next_instruction = self.instructions[instruction_index]
+                if self.scheduler.is_ready(next_instruction, self.current_cycle):
+                    issued_instruction = str(next_instruction)
+                    self.scheduler.reserve(next_instruction, self.current_cycle)
+                    self.in_flight = next_instruction
+                    instruction_index += 1
+
+            # Reset the wait flag after a cycle with no issuing
+            if self.wait_for_retire and not issued_instruction:
+                self.wait_for_retire = False
+
+            # Print the current cycle's details in columns
+            print(f"{self.current_cycle:<10}{issued_instruction:<30}{retired_instruction:<20}")
+
+        print("-" * 60)
+        print("Execution completed.")
+
+
+# Load instructions and run the processor
+instructions = load_instructions("instructions.txt")
+processor = Processor(instructions)
+processor.run()
+
+
+
+

@@ -1,0 +1,15 @@
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\bin\Debug\net8.0\C#,Simulation.exe
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\bin\Debug\net8.0\C#,Simulation.deps.json
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\bin\Debug\net8.0\C#,Simulation.runtimeconfig.json
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\bin\Debug\net8.0\C#,Simulation.dll
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\bin\Debug\net8.0\C#,Simulation.pdb
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\C#,Simulation.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\C#,Simulation.AssemblyInfoInputs.cache
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\C#,Simulation.AssemblyInfo.cs
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\C#,Simulation.csproj.CoreCompileInputs.cache
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\C#,Simulation.sourcelink.json
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\C#,Simulation.dll
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\refint\C#,Simulation.dll
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\C#,Simulation.pdb
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\C#,Simulation.genruntimeconfig.cache
+C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\C#,Simulation\obj\Debug\net8.0\ref\C#,Simulation.dll
