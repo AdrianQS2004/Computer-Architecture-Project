@@ -1,10 +1,13 @@
-﻿/*
+/*
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 */
 
+//This code only has a first version of superscalar
+//Is not working as intended
+//It seems it is not staling the code when it needs to
 
 public class Instruction
 {
@@ -72,41 +75,19 @@ public class Scheduler
 {
     private readonly Dictionary<string, int> _busyUntil = new();
 
-    public (bool isReady, string dependencyType) CheckDependencies(Instruction instruction, int currentCycle)
+    public bool IsReady(Instruction instruction, int currentCycle)
     {
-        // RAW (Read After Write) Dependency Check
-        if (!string.IsNullOrEmpty(instruction.LeftOperand) &&
-            _busyUntil.TryGetValue(instruction.LeftOperand, out var leftBusyUntil) &&
-            currentCycle < leftBusyUntil)
+        if (!string.IsNullOrEmpty(instruction.LeftOperand) && _busyUntil.TryGetValue(instruction.LeftOperand, out var leftBusyUntil))
         {
-            return (false, $"RAW (Read After Write) on {instruction.LeftOperand}");
+            if (currentCycle < leftBusyUntil) return false;
         }
 
-        if (!string.IsNullOrEmpty(instruction.RightOperand) &&
-            _busyUntil.TryGetValue(instruction.RightOperand, out var rightBusyUntil) &&
-            currentCycle < rightBusyUntil)
+        if (!string.IsNullOrEmpty(instruction.RightOperand) && _busyUntil.TryGetValue(instruction.RightOperand, out var rightBusyUntil))
         {
-            return (false, $"RAW (Read After Write) on {instruction.RightOperand}");
+            if (currentCycle < rightBusyUntil) return false;
         }
 
-        // WAW (Write After Write) Dependency Check
-        if (_busyUntil.TryGetValue(instruction.Dest, out var destBusyUntil) &&
-            currentCycle < destBusyUntil)
-        {
-            return (false, $"WAW (Write After Write) on {instruction.Dest}");
-        }
-
-        // WAR (Write After Read) Dependency Check
-        foreach (var (key, value) in _busyUntil)
-        {
-            if ((key == instruction.Dest && currentCycle < value) &&
-                (key == instruction.LeftOperand || key == instruction.RightOperand))
-            {
-                return (false, $"WAR (Write After Read) on {instruction.Dest}");
-            }
-        }
-
-        return (true, null); // No dependencies
+        return true;
     }
 
     public void Reserve(Instruction instruction, int currentCycle)
@@ -114,7 +95,6 @@ public class Scheduler
         _busyUntil[instruction.Dest] = currentCycle + instruction.CycleCost;
     }
 }
-
 
 public class Processor
 {
@@ -209,15 +189,14 @@ public class Processor
         int instructionIndex = 0;
         var inFlightInstructions = new List<(Instruction instruction, int retireCycle)>();
 
-        Console.WriteLine($"{"Cycle",-10}{"Issued Instructions",-30}{"Retired Instructions",-20}{"Dependency",-30}");
-        Console.WriteLine(new string('-', 100));
+        Console.WriteLine($"{"Cycle",-10}{"Issued Instructions",-30}{"Retired Instructions",-20}");
+        Console.WriteLine(new string('-', 60));
 
         while (instructionIndex < totalInstructions || inFlightInstructions.Any())
         {
             _currentCycle++;
             var issuedInstructions = new List<string>();
             var retiredInstructions = new List<string>();
-            string dependencyMessage = "";
 
             // Retire instructions that have completed
             for (int i = inFlightInstructions.Count - 1; i >= 0; i--)
@@ -231,13 +210,11 @@ public class Processor
                 }
             }
 
-            // Issue the next instruction if possible
-            if (instructionIndex < totalInstructions && inFlightInstructions.Count < _issue_slots)
+            // Issue instructions up to the issue slot limit
+            while (inFlightInstructions.Count < _issue_slots && instructionIndex < totalInstructions)
             {
                 var instruction = _instructions[instructionIndex];
-                var (isReady, dependencyType) = _scheduler.CheckDependencies(instruction, _currentCycle);
-
-                if (isReady)
+                if (_scheduler.IsReady(instruction, _currentCycle))
                 {
                     issuedInstructions.Add(instruction.ToString());
                     _scheduler.Reserve(instruction, _currentCycle);
@@ -246,17 +223,16 @@ public class Processor
                 }
                 else
                 {
-                    dependencyMessage = dependencyType; // Log the dependency
+                    break; // Dependencies are not resolved; stop issuing
                 }
             }
 
-            Console.WriteLine($"{_currentCycle,-10}{string.Join(", ", issuedInstructions),-30}{string.Join(", ", retiredInstructions),-20}{dependencyMessage,-30}");
+            Console.WriteLine($"{_currentCycle,-10}{string.Join(", ", issuedInstructions),-30}{string.Join(", ", retiredInstructions),-20}");
         }
 
-        Console.WriteLine(new string('-', 100));
+        Console.WriteLine(new string('-', 60));
         Console.WriteLine("Execution completed.");
     }
-
 
     private void Superscalar_out_of_order_run()
     {
@@ -265,15 +241,14 @@ public class Processor
         var inFlightInstructions = new List<(Instruction instruction, int retireCycle)>();
         var issuedIndices = new HashSet<int>();
 
-        Console.WriteLine($"{"Cycle",-10}{"Issued Instructions",-30}{"Retired Instructions",-20}{"Dependency",-30}");
-        Console.WriteLine(new string('-', 100));
+        Console.WriteLine($"{"Cycle",-10}{"Issued Instructions",-30}{"Retired Instructions",-20}");
+        Console.WriteLine(new string('-', 60));
 
         while (issuedIndices.Count < totalInstructions || inFlightInstructions.Any())
         {
             _currentCycle++;
             var issuedInstructions = new List<string>();
             var retiredInstructions = new List<string>();
-            string dependencyMessage = "";
 
             // Retire instructions that have completed
             for (int i = inFlightInstructions.Count - 1; i >= 0; i--)
@@ -290,20 +265,10 @@ public class Processor
             // Populate ready queue with all ready instructions
             for (int i = 0; i < totalInstructions; i++)
             {
-                if (!issuedIndices.Contains(i))
+                if (!issuedIndices.Contains(i) && _scheduler.IsReady(_instructions[i], _currentCycle))
                 {
-                    var instruction = _instructions[i];
-                    var (isReady, dependencyType) = _scheduler.CheckDependencies(instruction, _currentCycle);
-
-                    if (isReady)
-                    {
-                        readyQueue.Enqueue(instruction);
-                        issuedIndices.Add(i);
-                    }
-                    else
-                    {
-                        dependencyMessage = dependencyType; // Log the dependency
-                    }
+                    readyQueue.Enqueue(_instructions[i]);
+                    issuedIndices.Add(i); // Mark instruction as queued
                 }
             }
 
@@ -316,13 +281,12 @@ public class Processor
                 inFlightInstructions.Add((instruction, _currentCycle + instruction.CycleCost));
             }
 
-            Console.WriteLine($"{_currentCycle,-10}{string.Join(", ", issuedInstructions),-30}{string.Join(", ", retiredInstructions),-20}{dependencyMessage,-30}");
+            Console.WriteLine($"{_currentCycle,-10}{string.Join(", ", issuedInstructions),-30}{string.Join(", ", retiredInstructions),-20}");
         }
 
-        Console.WriteLine(new string('-', 100));
+        Console.WriteLine(new string('-', 60));
         Console.WriteLine("Execution completed.");
     }
-
 
 }
 
@@ -357,4 +321,3 @@ public static class Program
                    .ToList();
     }
 }
-
