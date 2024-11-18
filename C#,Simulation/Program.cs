@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 */
+
+
 public class Instruction
 {
     public string Dest { get; }
@@ -100,52 +102,75 @@ public class Processor
     private Instruction _inFlight;
     private bool _waitForRetire;
 
-    public Processor(List<Instruction> instructions)
+    private int _issue_slots;
+
+    public Processor(List<Instruction> instructions, int Configuration, int issue_slots)
     {
         _instructions = instructions;
+        _issue_slots = issue_slots;
+
+        // Helps me run the correct configuration depending on what was asked when creating the class
+        if (Configuration == 1)
+        {
+            Single_Instruction_run();
+
+        }
+        else if (Configuration == 2)
+        {
+
+            Superscalar_in_order_run();
+
+        }
+        else if (Configuration == 3)
+        {
+
+            Superscalar_out_of_order_run();
+
+        }
+
     }
 
-    public void Run()
+    public void Single_Instruction_run()
     {
         int instructionIndex = 0;
         int totalInstructions = _instructions.Count;
+        Instruction currentInstruction = null;
+        int retireCycle = 0;
+        bool waitForNextCycle = false; // Flag to track waiting after retirement
 
         Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-30}{"Retired Instruction",-20}");
         Console.WriteLine(new string('-', 60));
 
-        while (instructionIndex < totalInstructions || _inFlight != null)
+        while (instructionIndex < totalInstructions || currentInstruction != null)
         {
             _currentCycle++;
             string issuedInstruction = "";
             string retiredInstruction = "";
 
-            if (_inFlight != null)
+            // Retire the current instruction if its cycle cost is completed
+            if (currentInstruction != null && _currentCycle == retireCycle)
             {
-                if (_scheduler.IsReady(_inFlight, _currentCycle))
-                {
-                    int retiredIndex = _instructions.IndexOf(_inFlight) + 1;
-                    retiredInstruction = $"Instruction {retiredIndex}";
-                    _retired.Add(retiredIndex);
-                    _inFlight = null;
-                    _waitForRetire = true;
-                }
+                int retiredIndex = _instructions.IndexOf(currentInstruction) + 1;
+                retiredInstruction = $"Instruction {retiredIndex}";
+                currentInstruction = null;
+                waitForNextCycle = true; // Set the flag to wait for the next cycle
             }
 
-            if (_inFlight == null && !_waitForRetire && instructionIndex < totalInstructions)
+            // Issue a new instruction only if:
+            // 1. There is no current instruction in-flight.
+            // 2. We're not waiting for the next cycle after a retirement.
+            if (currentInstruction == null && !waitForNextCycle && instructionIndex < totalInstructions)
             {
-                var nextInstruction = _instructions[instructionIndex];
-                if (_scheduler.IsReady(nextInstruction, _currentCycle))
-                {
-                    issuedInstruction = nextInstruction.ToString();
-                    _scheduler.Reserve(nextInstruction, _currentCycle);
-                    _inFlight = nextInstruction;
-                    instructionIndex++;
-                }
+                currentInstruction = _instructions[instructionIndex];
+                issuedInstruction = currentInstruction.ToString();
+                retireCycle = _currentCycle + currentInstruction.CycleCost;
+                instructionIndex++;
             }
 
-            if (_waitForRetire && string.IsNullOrEmpty(issuedInstruction))
+            // Reset the wait flag if it was set during the previous cycle
+            if (waitForNextCycle && currentInstruction == null)
             {
-                _waitForRetire = false;
+                waitForNextCycle = false;
             }
 
             Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-30}{retiredInstruction,-20}");
@@ -154,15 +179,38 @@ public class Processor
         Console.WriteLine(new string('-', 60));
         Console.WriteLine("Execution completed.");
     }
+
+    private void Superscalar_in_order_run()
+    {
+
+    }
+
+    private void Superscalar_out_of_order_run()
+    {
+
+    }
 }
 
 public static class Program
 {
     public static void Main()
     {
+
+        //Needs to make sure the file path of the instructions.txt is the correct one, this cannot be shortened 
+
         var instructions = LoadInstructions("C:\\Users\\jairo\\OneDrive\\Documentos\\GitHub\\Computer-Architecture-Project\\instructions.txt");
-        var processor = new Processor(instructions);
-        processor.Run();
+        //Small test that makes sure the instruction are read in the correct way
+        /*
+        foreach (var instruction in instructions)
+        {
+            // Print the class name of each instruction
+            Console.WriteLine(instruction);
+        }
+        */
+
+        //Runs the processor with sinlge instruction, in order, with one issue slot
+        var processor = new Processor(instructions, 1, 1);
+        //processor.Run();
     }
 
     private static List<Instruction> LoadInstructions(string filePath)
