@@ -99,7 +99,7 @@ public class Processor
     private readonly Scheduler _scheduler = new();
     private int _currentCycle;
     private HashSet<int> _retired = new();
-    private Instruction _inFlight;
+    //private Instruction _inFlight;
     private bool _waitForRetire;
 
     private int _issue_slots;

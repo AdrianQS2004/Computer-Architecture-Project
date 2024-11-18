@@ -63,8 +63,8 @@ public class Instruction
     public override string ToString()
     {
         return Operator == "Store" || Operator == "Load"
-            ? $"{Dest} = {Operator}, CycleCost = {CycleCost}"
-            : $"{Dest} = {LeftOperand} {Operator} {RightOperand}, CycleCost = {CycleCost}";
+            ? $"{Dest} = {Operator}"
+            : $"{Dest} = {LeftOperand} {Operator} {RightOperand}";
     }
 }
 
@@ -99,7 +99,7 @@ public class Processor
     private readonly Scheduler _scheduler = new();
     private int _currentCycle;
     private HashSet<int> _retired = new();
-    private Instruction _inFlight;
+    //private Instruction _inFlight;
     private bool _waitForRetire;
 
     private int _issue_slots;
@@ -134,43 +134,43 @@ public class Processor
     {
         int instructionIndex = 0;
         int totalInstructions = _instructions.Count;
+        Instruction currentInstruction = null;
+        int retireCycle = 0;
+        bool waitForNextCycle = false; // Flag to track waiting after retirement
 
         Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-30}{"Retired Instruction",-20}");
         Console.WriteLine(new string('-', 60));
 
-        while (instructionIndex < totalInstructions || _inFlight != null)
+        while (instructionIndex < totalInstructions || currentInstruction != null)
         {
             _currentCycle++;
             string issuedInstruction = "";
             string retiredInstruction = "";
 
-            if (_inFlight != null)
+            // Retire the current instruction if its cycle cost is completed
+            if (currentInstruction != null && _currentCycle == retireCycle)
             {
-                if (_scheduler.IsReady(_inFlight, _currentCycle))
-                {
-                    int retiredIndex = _instructions.IndexOf(_inFlight) + 1;
-                    retiredInstruction = $"Instruction {retiredIndex}";
-                    _retired.Add(retiredIndex);
-                    _inFlight = null;
-                    _waitForRetire = true;
-                }
+                int retiredIndex = _instructions.IndexOf(currentInstruction) + 1;
+                retiredInstruction = $"Instruction {retiredIndex}";
+                currentInstruction = null;
+                waitForNextCycle = true; // Set the flag to wait for the next cycle
             }
 
-            if (_inFlight == null && !_waitForRetire && instructionIndex < totalInstructions)
+            // Issue a new instruction only if:
+            // 1. There is no current instruction in-flight.
+            // 2. We're not waiting for the next cycle after a retirement.
+            if (currentInstruction == null && !waitForNextCycle && instructionIndex < totalInstructions)
             {
-                var nextInstruction = _instructions[instructionIndex];
-                if (_scheduler.IsReady(nextInstruction, _currentCycle))
-                {
-                    issuedInstruction = nextInstruction.ToString();
-                    _scheduler.Reserve(nextInstruction, _currentCycle);
-                    _inFlight = nextInstruction;
-                    instructionIndex++;
-                }
+                currentInstruction = _instructions[instructionIndex];
+                issuedInstruction = currentInstruction.ToString();
+                retireCycle = _currentCycle + currentInstruction.CycleCost;
+                instructionIndex++;
             }
 
-            if (_waitForRetire && string.IsNullOrEmpty(issuedInstruction))
+            // Reset the wait flag if it was set during the previous cycle
+            if (waitForNextCycle && currentInstruction == null)
             {
-                _waitForRetire = false;
+                waitForNextCycle = false;
             }
 
             Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-30}{retiredInstruction,-20}");
@@ -208,6 +208,7 @@ public static class Program
         }
         */
 
+        //Runs the processor with sinlge instruction, in order, with one issue slot
         var processor = new Processor(instructions, 1, 1);
         //processor.Run();
     }
@@ -220,4 +221,3 @@ public static class Program
                    .ToList();
     }
 }
-
