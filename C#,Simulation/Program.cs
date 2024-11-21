@@ -285,10 +285,11 @@ public class Processor
         var currentInstructions = new Instruction[_issue_slots];
         int multipliedValue = _issue_slots;
         Dictionary<int, int> retireCycles = new Dictionary<int, int>();
+        int IssuedColumn = 3 * multipliedValue;
 
         bool[] stalled = new bool[_issue_slots];
 
-        Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-10 * (3)}{"Retired Instruction",-10 * (2)}");
+        Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-10 * 3}{"Retired Instruction",-10 * 2}");
         Console.WriteLine(new string('-', 10 * (6)));
 
         // Run until all instructions are retired
@@ -350,18 +351,91 @@ public class Processor
             }
 
             // Print the cycle summary
-            Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-10 * (3)}{retiredInstruction,-10 * (2)}");
+            Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-10 * 3}{retiredInstruction,-10 * 2}");
         }
 
         Console.WriteLine(new string('-', 10 * (6)));
         Console.WriteLine("Execution completed.");
     }
 
-
-
     private void Superscalar_out_of_order_run()
     {
+        int instructionIndex = 0;
+        int totalInstructions = _instructions.Count;
+        var currentInstructions = new Instruction[_issue_slots];
+        int multipliedValue = _issue_slots;
+        Dictionary<int, int> retireCycles = new Dictionary<int, int>();
+        int IssuedColumn = 3 * multipliedValue;
 
+        bool[] stalled = new bool[_issue_slots];
+
+        Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-10 * 3}{"Retired Instruction",-10 * 2}");
+        Console.WriteLine(new string('-', 10 * (6)));
+
+        // Run until all instructions are retired
+        while (instructionIndex < totalInstructions || retireCycles.Count > 0)
+        {
+            _currentCycle++;
+            string issuedInstruction = "";
+            string retiredInstruction = "";
+
+            // Issue instructions if slots are free and not stalled
+            for (int i = 0; i < _issue_slots; i++)
+            {
+
+                if (instructionIndex >= totalInstructions)
+                    break;
+
+                var instruction = _instructions[instructionIndex];
+
+                // Check dependencies before issuing, This method also adds to a table, the registers that were read and written in the current Issued instruction
+                if (_scheduler.IsReady(instruction))
+                {
+                    //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
+                    //The retire Cycles dictionary tells us when an instruction is ready to be retired
+                    issuedInstruction += instructionIndex + 1 + "." + instruction.ToString() + " ";
+                    retireCycles.Add(instructionIndex + 1, _currentCycle + instruction.CycleCost);
+                    instructionIndex++;
+                }
+                else
+                {
+                    // Dependency detected, continue progressing cycles
+                    //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+                    break;
+                }
+
+            }
+
+            List<int> cyclesToRemove = new List<int>();
+
+            // Retire instructions that have completed
+            foreach (KeyValuePair<int, int> cycle in retireCycles)
+            {
+                //If a value in retired cycles is the same as the current amount of cycles, then the instructions has been retired
+                if (_currentCycle == cycle.Value)
+                {
+                    //Removes the numbers from the tables in the Scheduler, meaning the registers have been freed up
+                    _scheduler.RetireInstruction(_instructions[cycle.Key - 1]);
+
+                    //Sums the retired instructions into the variable that will be printed
+                    retiredInstruction += $"Instruction {cycle.Key} ";
+
+                    //Removes the retired instruction from retire cycles
+                    cyclesToRemove.Add(cycle.Key);
+                }
+            }
+
+            foreach (var index in cyclesToRemove.OrderByDescending(x => x))
+            {
+                retireCycles.Remove(index); // Safely remove cycles after enumeration
+            }
+
+            // Print the cycle summary
+            Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-10 * 3}{retiredInstruction,-10 * 2}");
+        }
+
+        Console.WriteLine(new string('-', 10 * (6)));
+        Console.WriteLine("Execution completed.");
     }
 }
 
@@ -384,7 +458,7 @@ public static class Program
 
         //Runs the processor with single instruction, in order, with one issue slot
         var processor = new Processor(instructions, 1, 1);
-        var processorInOrder = new Processor(instructions, 2, 1);
+        var processorInOrder = new Processor(instructions, 2, 2);
         //var processorOutofOrder = new Processor(instructions, 3, 1);
 
     }
