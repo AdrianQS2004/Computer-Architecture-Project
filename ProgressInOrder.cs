@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 */
 
-//This code only has single order execution
+//This code has the scheduler fully working, and right now the superscalar in order is not working, trying to get the logic to work
 public class Instruction
 {
     public string Dest { get; }
@@ -90,9 +90,9 @@ public class Scheduler
 
         if (CheckForDependecies(instruction) == 0)
         {
-
+            Console.WriteLine("\nUpdating the Dictionaries\n");
             UpdateDictionaries(instruction);
-
+            PrintDictionaries();
             return true;
         }
 
@@ -102,17 +102,12 @@ public class Scheduler
     public void RetireInstruction(Instruction instruction)
     {
 
-        RegsWritten[instruction.Dest] = -1;
+        RegsWritten[instruction.Dest] -= 1;
         if (instruction.Operator != "Store" && instruction.Operator != "Load")
         {
-            RegsRead[instruction.LeftOperand] = -1;
-            RegsRead[instruction.RightOperand] = -1;
+            RegsRead[instruction.LeftOperand] -= 1;
+            RegsRead[instruction.RightOperand] -= 1;
         }
-    }
-
-    public void Reserve(Instruction instruction, int currentCycle)
-    {
-        _busyUntil[instruction.Dest] = currentCycle + instruction.CycleCost;
     }
 
     private int CheckForDependecies(Instruction instruction)
@@ -121,6 +116,12 @@ public class Scheduler
 
         //Would check the Regs to make sure the operands are not being written to
         //ReadAfters cannot happen if the instruction is a Store or a Load
+        Console.WriteLine("\nChecking for Dependencies\n");
+
+        PrintDictionaries();
+
+        Console.WriteLine("\n------------------------------\n");
+
         if (instruction.Operator != "Store" && instruction.Operator != "Load")
         {
             //Console.WriteLine("-The operation is not Store or Load, meaning it will try and find a ReadAfterWrite-");
@@ -155,9 +156,12 @@ public class Scheduler
     private void UpdateDictionaries(Instruction instruction)
     {
 
-        RegsWritten[instruction.Dest] = +1;
-        RegsRead[instruction.LeftOperand] = +1;
-        RegsRead[instruction.RightOperand] = +1;
+        RegsWritten[instruction.Dest] += 1;
+        if (instruction.Operator != "Store" && instruction.Operator != "Load")
+        {
+            RegsRead[instruction.LeftOperand] += 1;
+            RegsRead[instruction.RightOperand] += 1;
+        }
 
     }
 
@@ -181,6 +185,21 @@ public class Scheduler
         RegsWritten.Add("R5", 0);
         RegsWritten.Add("R6", 0);
         RegsWritten.Add("R7", 0);
+    }
+
+    public void PrintDictionaries()
+    {
+        Console.WriteLine("RegsRead Dictionary:");
+        foreach (var entry in RegsRead)
+        {
+            Console.WriteLine($"{entry.Key}: {entry.Value}");
+        }
+
+        Console.WriteLine("\nRegsWritten Dictionary:");
+        foreach (var entry in RegsWritten)
+        {
+            Console.WriteLine($"{entry.Key}: {entry.Value}");
+        }
     }
 }
 
@@ -282,7 +301,8 @@ public class Processor
         Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-30}{"Retired Instruction",-20}");
         Console.WriteLine(new string('-', 60));
 
-        while (instructionIndex < totalInstructions) //|| currentInstructions.Any(ci => ci != null))
+        // Run until all instructions are retired
+        while (instructionIndex < totalInstructions)
         {
             _currentCycle++;
             string issuedInstruction = "";
@@ -293,10 +313,8 @@ public class Processor
             {
                 if (currentInstructions[i] != null && _currentCycle == retireCycles[i])
                 {
-                    Console.WriteLine("\nTrying to retire different instructions\n");
                     int retiredIndex = _instructions.IndexOf(currentInstructions[i]) + 1;
-                    //Removes numbers from the table, freeing up space for instructions to be issued
-                    _scheduler.RetireInstruction(currentInstructions[i]);
+                    _scheduler.RetireInstruction(currentInstructions[i]); // Free registers after retiring
                     retiredInstruction += $"Instruction {retiredIndex} ";
                     currentInstructions[i] = null;
                     stalled[i] = true; // Stall the slot for the next cycle
@@ -325,23 +343,26 @@ public class Processor
                         currentInstructions[i] = instruction;
                         issuedInstruction += instruction.ToString() + " ";
                         retireCycles[i] = _currentCycle + instruction.CycleCost;
-                        //_scheduler.Reserve(instruction, _currentCycle);
                         instructionIndex++;
                     }
                     else
                     {
+                        // Dependency detected, continue progressing cycles
                         Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
-                        break; // Stall further instructions for this cycle
+                        break;
                     }
                 }
             }
 
+            // Print the cycle summary
             Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-30}{retiredInstruction,-20}");
         }
 
         Console.WriteLine(new string('-', 60));
         Console.WriteLine("Execution completed.");
     }
+
+
 
     private void Superscalar_out_of_order_run()
     {
@@ -366,11 +387,140 @@ public static class Program
         }
         */
 
-        //Runs the processor with sinlge instruction, in order, with one issue slot
+        //Runs the processor with single instruction, in order, with one issue slot
         var processor = new Processor(instructions, 1, 1);
         var processorInOrder = new Processor(instructions, 2, 1);
         //var processorOutofOrder = new Processor(instructions, 3, 1);
         //processor.Run();
+
+
+        //Scheduler should now work as intended, now we need to implement it to make the superscalar in order work
+
+        /*
+        var Scheduler = new Scheduler();
+
+        if (Scheduler.IsReady(instructions[0]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        if (Scheduler.IsReady(instructions[1]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        Scheduler.PrintDictionaries();
+
+        Scheduler.RetireInstruction(instructions[0]);
+
+        Scheduler.PrintDictionaries();
+
+        if (Scheduler.IsReady(instructions[1]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        if (Scheduler.IsReady(instructions[2]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        if (Scheduler.IsReady(instructions[3]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        if (Scheduler.IsReady(instructions[4]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        if (Scheduler.IsReady(instructions[5]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        Scheduler.RetireInstruction(instructions[1]);
+        Scheduler.RetireInstruction(instructions[2]);
+        Scheduler.RetireInstruction(instructions[3]);
+
+        if (Scheduler.IsReady(instructions[5]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        Scheduler.RetireInstruction(instructions[4]);
+
+        if (Scheduler.IsReady(instructions[5]))
+        {
+            Console.WriteLine("\nSuccesfully Issued an instruction / it had no dependecies\n");
+        }
+        else
+        {
+            // Dependency detected, continue progressing cycles
+            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+            //break;
+            Console.WriteLine("\nCouldnt Issue the instruction, it had a dependency\n");
+        }
+
+        */
+
     }
 
     private static List<Instruction> LoadInstructions(string filePath)
