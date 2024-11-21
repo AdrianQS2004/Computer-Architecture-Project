@@ -1,4 +1,4 @@
-﻿/*
+/*
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -282,8 +282,7 @@ public class Processor
         Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-30}{"Retired Instruction",-20}");
         Console.WriteLine(new string('-', 60));
 
-        // Run until all instructions are retired
-        while (instructionIndex < totalInstructions || currentInstructions.Any(ci => ci != null))
+        while (instructionIndex < totalInstructions) //|| currentInstructions.Any(ci => ci != null))
         {
             _currentCycle++;
             string issuedInstruction = "";
@@ -294,8 +293,10 @@ public class Processor
             {
                 if (currentInstructions[i] != null && _currentCycle == retireCycles[i])
                 {
+                    Console.WriteLine("\nTrying to retire different instructions\n");
                     int retiredIndex = _instructions.IndexOf(currentInstructions[i]) + 1;
-                    _scheduler.RetireInstruction(currentInstructions[i]); // Free registers after retiring
+                    //Removes numbers from the table, freeing up space for instructions to be issued
+                    _scheduler.RetireInstruction(currentInstructions[i]);
                     retiredInstruction += $"Instruction {retiredIndex} ";
                     currentInstructions[i] = null;
                     stalled[i] = true; // Stall the slot for the next cycle
@@ -324,25 +325,23 @@ public class Processor
                         currentInstructions[i] = instruction;
                         issuedInstruction += instruction.ToString() + " ";
                         retireCycles[i] = _currentCycle + instruction.CycleCost;
+                        //_scheduler.Reserve(instruction, _currentCycle);
                         instructionIndex++;
                     }
                     else
                     {
-                        // If dependencies are detected, the rest of this cycle cannot issue more instructions
                         Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
-                        break;
+                        break; // Stall further instructions for this cycle
                     }
                 }
             }
 
-            // Print the cycle summary
             Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-30}{retiredInstruction,-20}");
         }
 
         Console.WriteLine(new string('-', 60));
         Console.WriteLine("Execution completed.");
     }
-
 
     private void Superscalar_out_of_order_run()
     {
