@@ -90,9 +90,9 @@ public class Scheduler
 
         if (CheckForDependecies(instruction) == 0)
         {
-            Console.WriteLine("\nUpdating the Dictionaries\n");
+            //Console.WriteLine("\nUpdating the Dictionaries\n");
             UpdateDictionaries(instruction);
-            PrintDictionaries();
+            //PrintDictionaries();
             return true;
         }
 
@@ -116,12 +116,13 @@ public class Scheduler
 
         //Would check the Regs to make sure the operands are not being written to
         //ReadAfters cannot happen if the instruction is a Store or a Load
+        /*
         Console.WriteLine("\nChecking for Dependencies\n");
 
         PrintDictionaries();
 
         Console.WriteLine("\n------------------------------\n");
-
+        */
         if (instruction.Operator != "Store" && instruction.Operator != "Load")
         {
             //Console.WriteLine("-The operation is not Store or Load, meaning it will try and find a ReadAfterWrite-");
@@ -295,7 +296,7 @@ public class Processor
         int instructionIndex = 0;
         int totalInstructions = _instructions.Count;
         var currentInstructions = new Instruction[_issue_slots];
-        var retireCycles = new int[_issue_slots];
+        List<int> retireCycles = new List<int>();
         bool[] stalled = new bool[_issue_slots];
 
         Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-30}{"Retired Instruction",-20}");
@@ -308,50 +309,67 @@ public class Processor
             string issuedInstruction = "";
             string retiredInstruction = "";
 
-            // Retire instructions that have completed
-            for (int i = 0; i < _issue_slots; i++)
-            {
-                if (currentInstructions[i] != null && _currentCycle == retireCycles[i])
-                {
-                    int retiredIndex = _instructions.IndexOf(currentInstructions[i]) + 1;
-                    _scheduler.RetireInstruction(currentInstructions[i]); // Free registers after retiring
-                    retiredInstruction += $"Instruction {retiredIndex} ";
-                    currentInstructions[i] = null;
-                    stalled[i] = true; // Stall the slot for the next cycle
-                }
-            }
-
-            // Reset stall flags for slots after a cycle
-            for (int i = 0; i < _issue_slots; i++)
-            {
-                if (stalled[i] && currentInstructions[i] == null)
-                {
-                    stalled[i] = false;
-                }
-            }
-
             // Issue instructions if slots are free and not stalled
             for (int i = 0; i < _issue_slots; i++)
             {
-                if (currentInstructions[i] == null && !stalled[i] && instructionIndex < totalInstructions)
-                {
-                    var instruction = _instructions[instructionIndex];
 
-                    // Check dependencies before issuing
-                    if (_scheduler.IsReady(instruction))
-                    {
-                        currentInstructions[i] = instruction;
-                        issuedInstruction += instruction.ToString() + " ";
-                        retireCycles[i] = _currentCycle + instruction.CycleCost;
-                        instructionIndex++;
-                    }
-                    else
-                    {
-                        // Dependency detected, continue progressing cycles
-                        Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
-                        break;
-                    }
+                var instruction = _instructions[instructionIndex];
+
+                // Check dependencies before issuing
+                if (_scheduler.IsReady(instruction))
+                {
+                    //currentInstructions[i] = instruction;
+                    issuedInstruction += instruction.ToString() + " ";
+                    retireCycles.Add(_currentCycle + instruction.CycleCost);
+                    Console.WriteLine("\nCurrent Retired Cycle: " + retireCycles[instructionIndex] + "\n"); //Should start from 1
+                    //Console.WriteLine("\nCurrent Instruction Index: " + instructionIndex + "\n");
+                    instructionIndex++;
                 }
+                else
+                {
+                    // Dependency detected, continue progressing cycles
+                    //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+                    break;
+                }
+
+            }
+
+            List<int> cyclesToRemove = new List<int>();
+
+            //Change the Retire Cycles with a Dictionary, it may work, the problem may lie in how the information is stored, the index are aliging up
+
+            //It is printing muttiple Retired Instructions in the same, so the idea is correct
+
+            //It should work with a Dictionary, will try to do it tomorrow quickly
+
+            // Retire instructions that have completed
+            foreach (var cycle in retireCycles)
+            {
+                //Console.WriteLine("\nCurrent Cycle: " + cycle + "\n");
+                //If a value in retired cycles is the same as the current amount of cycles, then the instructions has been retired
+                if (_currentCycle == cycle)
+                {
+                    //Gets the index of the current Retired Instruction
+                    int retiredIndex = retireCycles.FindIndex(x => x == cycle);
+
+                    //Console.WriteLine("\nCurrent Retired Index: " + retiredIndex + "\n");
+
+                    //Removes the numbers from the tables in the Scheduler, meaning the registers have been freed up
+                    _scheduler.RetireInstruction(_instructions[retiredIndex]);
+
+                    //Sums the retired instructions into the variable that will be printed
+                    retiredInstruction += $"Instruction {retiredIndex} ";
+
+                    //Removes the retired instruction from retire cycles
+                    //retireCycles.RemoveAt(retiredIndex);
+
+                    cyclesToRemove.Add(retiredIndex);
+                }
+            }
+
+            foreach (var index in cyclesToRemove.OrderByDescending(x => x))
+            {
+                retireCycles.RemoveAt(index); // Safely remove cycles after enumeration
             }
 
             // Print the cycle summary
