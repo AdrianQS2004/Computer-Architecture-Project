@@ -232,7 +232,7 @@ public class Processor
     {
         int instructionIndex = 0;
         int totalInstructions = _instructions.Count;
-        Instruction currentInstruction = null;
+        Instruction? currentInstruction = null;
         int retireCycle = 0;
         bool waitForNextCycle = false; // Flag to track waiting after retirement
 
