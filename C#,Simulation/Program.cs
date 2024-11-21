@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 */
 
-//This code only has single order execution
+//This code has the scheduler fully working, and right now the superscalar in order is not working, trying to get the logic to work
 public class Instruction
 {
     public string Dest { get; }
@@ -90,9 +90,9 @@ public class Scheduler
 
         if (CheckForDependecies(instruction) == 0)
         {
-            //Console.WriteLine("\nUpdating the Dictionaries\n");
+            Console.WriteLine("\nUpdating the Dictionaries\n");
             UpdateDictionaries(instruction);
-            //PrintDictionaries();
+            PrintDictionaries();
             return true;
         }
 
@@ -116,11 +116,11 @@ public class Scheduler
 
         //Would check the Regs to make sure the operands are not being written to
         //ReadAfters cannot happen if the instruction is a Store or a Load
-        //Console.WriteLine("\nChecking for Dependencies\n");
+        Console.WriteLine("\nChecking for Dependencies\n");
 
-        //PrintDictionaries();
+        PrintDictionaries();
 
-        //Console.WriteLine("\n------------------------------\n");
+        Console.WriteLine("\n------------------------------\n");
 
         if (instruction.Operator != "Store" && instruction.Operator != "Load")
         {
@@ -302,14 +302,13 @@ public class Processor
         Console.WriteLine(new string('-', 60));
 
         // Run until all instructions are retired
-        while (instructionIndex < totalInstructions || currentInstructions.Any(ci => ci != null))
+        while (instructionIndex < totalInstructions)
         {
             _currentCycle++;
             string issuedInstruction = "";
             string retiredInstruction = "";
 
-            // First pass: Retire any instructions that have completed in the current cycle
-            bool anyRetirementThisCycle = false;
+            // Retire instructions that have completed
             for (int i = 0; i < _issue_slots; i++)
             {
                 if (currentInstructions[i] != null && _currentCycle == retireCycles[i])
@@ -319,25 +318,6 @@ public class Processor
                     retiredInstruction += $"Instruction {retiredIndex} ";
                     currentInstructions[i] = null;
                     stalled[i] = true; // Stall the slot for the next cycle
-                    anyRetirementThisCycle = true;
-                }
-            }
-
-            // Keep retrying to retire instructions as long as any retirement happened in this cycle
-            while (anyRetirementThisCycle)
-            {
-                anyRetirementThisCycle = false;
-                for (int i = 0; i < _issue_slots; i++)
-                {
-                    if (currentInstructions[i] != null && _currentCycle == retireCycles[i])
-                    {
-                        int retiredIndex = _instructions.IndexOf(currentInstructions[i]) + 1;
-                        _scheduler.RetireInstruction(currentInstructions[i]);
-                        retiredInstruction += $"Instruction {retiredIndex} ";
-                        currentInstructions[i] = null;
-                        stalled[i] = true; // Stall the slot for the next cycle
-                        anyRetirementThisCycle = true;
-                    }
                 }
             }
 
@@ -369,6 +349,7 @@ public class Processor
                     {
                         // Dependency detected, continue progressing cycles
                         Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+                        break;
                     }
                 }
             }
@@ -380,7 +361,6 @@ public class Processor
         Console.WriteLine(new string('-', 60));
         Console.WriteLine("Execution completed.");
     }
-
 
 
 
