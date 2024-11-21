@@ -109,12 +109,12 @@ public class Scheduler
             RegsRead[instruction.RightOperand] = -1;
         }
     }
-
+    /*
     public void Reserve(Instruction instruction, int currentCycle)
     {
         _busyUntil[instruction.Dest] = currentCycle + instruction.CycleCost;
     }
-
+    */
     private int CheckForDependecies(Instruction instruction)
     {
         //Check for ReadAfterWrite
@@ -328,9 +328,8 @@ public class Processor
                     }
                     else
                     {
-                        // If dependencies are detected, the rest of this cycle cannot issue more instructions
+                        // Dependency detected, continue progressing cycles
                         Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
-                        break;
                     }
                 }
             }
@@ -342,6 +341,7 @@ public class Processor
         Console.WriteLine(new string('-', 60));
         Console.WriteLine("Execution completed.");
     }
+
 
 
     private void Superscalar_out_of_order_run()
