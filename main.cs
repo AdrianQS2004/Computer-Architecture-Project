@@ -5,7 +5,8 @@ using System.IO;
 using System.Linq;
 */
 
-//This code only has single order execution
+//This code has the scheduler fully working, and now the SuperScalar In Order works, it works perfectly, just need to fix some of the way it prints values
+//This code will be the base code for the SuperScalar OutOfOrder, that shouldn't take to long, will need to ask the professor some thins about the settings he wants us to use
 public class Instruction
 {
     public string Dest { get; }
@@ -70,26 +71,125 @@ public class Instruction
 
 public class Scheduler
 {
-    private readonly Dictionary<string, int> _busyUntil = new();
 
-    public bool IsReady(Instruction instruction, int currentCycle)
+    private Dictionary<string, int> RegsRead = new Dictionary<string, int>();
+    private Dictionary<string, int> RegsWritten = new Dictionary<string, int>();
+
+    public Scheduler()
     {
-        if (!string.IsNullOrEmpty(instruction.LeftOperand) && _busyUntil.TryGetValue(instruction.LeftOperand, out var leftBusyUntil))
-        {
-            if (currentCycle < leftBusyUntil) return false;
-        }
 
-        if (!string.IsNullOrEmpty(instruction.RightOperand) && _busyUntil.TryGetValue(instruction.RightOperand, out var rightBusyUntil))
-        {
-            if (currentCycle < rightBusyUntil) return false;
-        }
+        SetUpDictionaries();
 
-        return true;
     }
 
-    public void Reserve(Instruction instruction, int currentCycle)
+    public bool IsReady(Instruction instruction)
     {
-        _busyUntil[instruction.Dest] = currentCycle + instruction.CycleCost;
+
+        if (CheckForDependecies(instruction) == 0)
+        {
+            UpdateDictionaries(instruction);
+            return true;
+        }
+
+        return false;
+    }
+
+    public void RetireInstruction(Instruction instruction)
+    {
+
+        RegsWritten[instruction.Dest] -= 1;
+        if (instruction.Operator != "Store" && instruction.Operator != "Load")
+        {
+            RegsRead[instruction.LeftOperand] -= 1;
+            RegsRead[instruction.RightOperand] -= 1;
+        }
+    }
+
+    private int CheckForDependecies(Instruction instruction)
+    {
+        //Check for ReadAfterWrite
+
+        //Would check the Regs to make sure the operands are not being written to
+        //ReadAfters cannot happen if the instruction is a Store or a Load
+
+        if (instruction.Operator != "Store" && instruction.Operator != "Load")
+        {
+            //Console.WriteLine("-The operation is not Store or Load, meaning it will try and find a ReadAfterWrite-");
+            if (RegsWritten[instruction.LeftOperand] == 1 || RegsWritten[instruction.RightOperand] == 1)
+            {
+                //Console.WriteLine("\nWe have a ReadAfterWrite Dependency\n");
+                return 1;
+
+
+            }
+        }
+        //Checks the condition for WriteAfterRead
+        if (RegsRead[instruction.Dest] != 0)
+        {
+
+            //Console.WriteLine("\nWe have a WriteAfterRead Dependency\n");
+            return 2;
+        }
+        //Checks the condition for Write after Write
+        else if (RegsWritten[instruction.Dest] != 0)
+        {
+
+            //Console.WriteLine("\nWe have a WriteAfterWrite Dependency\n");
+            return 3;
+        }
+
+        //If it reached the true, it means this has no dependecies
+        return 0;
+
+    }
+
+    private void UpdateDictionaries(Instruction instruction)
+    {
+
+        RegsWritten[instruction.Dest] += 1;
+        if (instruction.Operator != "Store" && instruction.Operator != "Load")
+        {
+            RegsRead[instruction.LeftOperand] += 1;
+            RegsRead[instruction.RightOperand] += 1;
+        }
+
+    }
+
+    private void SetUpDictionaries()
+    {
+
+        RegsRead.Add("R0", 0);
+        RegsRead.Add("R1", 0);
+        RegsRead.Add("R2", 0);
+        RegsRead.Add("R3", 0);
+        RegsRead.Add("R4", 0);
+        RegsRead.Add("R5", 0);
+        RegsRead.Add("R6", 0);
+        RegsRead.Add("R7", 0);
+
+        RegsWritten.Add("R0", 0);
+        RegsWritten.Add("R1", 0);
+        RegsWritten.Add("R2", 0);
+        RegsWritten.Add("R3", 0);
+        RegsWritten.Add("R4", 0);
+        RegsWritten.Add("R5", 0);
+        RegsWritten.Add("R6", 0);
+        RegsWritten.Add("R7", 0);
+    }
+
+    public void PrintDictionaries()
+    {
+        Console.WriteLine("RegsRead Dictionary:");
+        foreach (var entry in RegsRead)
+        {
+            Console.WriteLine($"{entry.Key}: {entry.Value}");
+        }
+
+        Console.WriteLine("\nRegsWritten Dictionary:");
+        foreach (var entry in RegsWritten)
+        {
+            Console.WriteLine($"{entry.Key}: {entry.Value}");
+        }
     }
 }
 
@@ -99,8 +199,6 @@ public class Processor
     private readonly Scheduler _scheduler = new();
     private int _currentCycle;
     private HashSet<int> _retired = new();
-    //private Instruction _inFlight;
-    private bool _waitForRetire;
 
     private int _issue_slots;
 
@@ -182,8 +280,84 @@ public class Processor
 
     private void Superscalar_in_order_run()
     {
+        int instructionIndex = 0;
+        int totalInstructions = _instructions.Count;
+        var currentInstructions = new Instruction[_issue_slots];
+        int multipliedValue = _issue_slots;
+        Dictionary<int, int> retireCycles = new Dictionary<int, int>();
 
+        bool[] stalled = new bool[_issue_slots];
+
+        Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-10 * (3)}{"Retired Instruction",-10 * (2)}");
+        Console.WriteLine(new string('-', 10 * (6)));
+
+        // Run until all instructions are retired
+        while (instructionIndex < totalInstructions || retireCycles.Count > 0)
+        {
+            _currentCycle++;
+            string issuedInstruction = "";
+            string retiredInstruction = "";
+
+            // Issue instructions if slots are free and not stalled
+            for (int i = 0; i < _issue_slots; i++)
+            {
+
+                if (instructionIndex >= totalInstructions)
+                    break;
+
+                var instruction = _instructions[instructionIndex];
+
+                // Check dependencies before issuing, This method also adds to a table, the registers that were read and written in the current Issued instruction
+                if (_scheduler.IsReady(instruction))
+                {
+                    //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
+                    //The retire Cycles dictionary tells us when an instruction is ready to be retired
+                    issuedInstruction += instructionIndex + 1 + "." + instruction.ToString() + " ";
+                    retireCycles.Add(instructionIndex + 1, _currentCycle + instruction.CycleCost);
+                    instructionIndex++;
+                }
+                else
+                {
+                    // Dependency detected, continue progressing cycles
+                    //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+                    break;
+                }
+
+            }
+
+            List<int> cyclesToRemove = new List<int>();
+
+            // Retire instructions that have completed
+            foreach (KeyValuePair<int, int> cycle in retireCycles)
+            {
+                //If a value in retired cycles is the same as the current amount of cycles, then the instructions has been retired
+                if (_currentCycle == cycle.Value)
+                {
+                    //Removes the numbers from the tables in the Scheduler, meaning the registers have been freed up
+                    _scheduler.RetireInstruction(_instructions[cycle.Key - 1]);
+
+                    //Sums the retired instructions into the variable that will be printed
+                    retiredInstruction += $"Instruction {cycle.Key} ";
+
+                    //Removes the retired instruction from retire cycles
+                    cyclesToRemove.Add(cycle.Key);
+                }
+            }
+
+            foreach (var index in cyclesToRemove.OrderByDescending(x => x))
+            {
+                retireCycles.Remove(index); // Safely remove cycles after enumeration
+            }
+
+            // Print the cycle summary
+            Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-10 * (3)}{retiredInstruction,-10 * (2)}");
+        }
+
+        Console.WriteLine(new string('-', 10 * (6)));
+        Console.WriteLine("Execution completed.");
     }
+
+
 
     private void Superscalar_out_of_order_run()
     {
@@ -208,9 +382,11 @@ public static class Program
         }
         */
 
-        //Runs the processor with sinlge instruction, in order, with one issue slot
+        //Runs the processor with single instruction, in order, with one issue slot
         var processor = new Processor(instructions, 1, 1);
-        //processor.Run();
+        var processorInOrder = new Processor(instructions, 2, 1);
+        //var processorOutofOrder = new Processor(instructions, 3, 1);
+
     }
 
     private static List<Instruction> LoadInstructions(string filePath)
