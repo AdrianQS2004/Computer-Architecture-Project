@@ -366,6 +366,7 @@ public class Processor
         int multipliedValue = _issue_slots;
         Dictionary<int, int> retireCycles = new Dictionary<int, int>();
         int IssuedColumn = 3 * multipliedValue;
+        Dictionary<Instruction, int> InCycleinstructions = new Dictionary<Instruction, int>();
 
         bool[] stalled = new bool[_issue_slots];
 
