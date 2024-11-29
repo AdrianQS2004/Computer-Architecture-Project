@@ -5,8 +5,8 @@ using System.IO;
 using System.Linq;
 */
 
-//This code has the scheduler fully working, and now the SuperScalar In Order works, it works perfectly, just need to fix some of the way it prints values
-//This code will be the base code for the SuperScalar OutOfOrder, that shouldn't take to long, will need to ask the professor some thins about the settings he wants us to use
+//This code has the scheduler fully working, the Superscalar in Order works and the Superscalar out of order is also done
+
 public class Instruction
 {
     public string Dest { get; }
@@ -197,8 +197,6 @@ public class Processor
 {
     private readonly List<Instruction> _instructions;
     private readonly Scheduler _scheduler = new();
-    private int _currentCycle;
-    private HashSet<int> _retired = new();
 
     private int _issue_slots;
 
@@ -288,8 +286,16 @@ public class Processor
         Dictionary<int, int> retireCycles = new Dictionary<int, int>();
         int IssuedColumn = 3 * multipliedValue;
 
-        Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-10 * 3}{"Retired Instruction",-10 * 2}");
-        Console.WriteLine(new string('-', 10 * (6)));
+        if (_issue_slots == 3)
+        {
+            Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-50}{"Retired Instruction",-20}");
+            Console.WriteLine(new string('-', 90));
+        }
+        else
+        {
+            Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-30}{"Retired Instruction",-20}");
+            Console.WriteLine(new string('-', 60));
+        }
 
         // Run until all instructions are retired
         while (instructionIndex < totalInstructions || retireCycles.Count > 0)
@@ -350,10 +356,26 @@ public class Processor
             }
 
             // Print the cycle summary
-            Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-10 * 3}{retiredInstruction,-10 * 2}");
+            if (_issue_slots == 3)
+            {
+                Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-50}{retiredInstruction,-20}");
+            }
+            else
+            {
+                Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-30}{retiredInstruction,-20}");
+            }
+
+
         }
 
-        Console.WriteLine(new string('-', 10 * (6)));
+        if (_issue_slots == 3)
+        {
+            Console.WriteLine(new string('-', 90));
+        }
+        else
+        {
+            Console.WriteLine(new string('-', 60));
+        }
         Console.WriteLine("Execution completed.");
     }
 
@@ -362,24 +384,24 @@ public class Processor
         int instructionIndex = 0;
         int _currentCycle = 0;
         int totalInstructions = _instructions.Count;
-        int multipliedValue = _issue_slots;
         Dictionary<int, int> retireCycles = new Dictionary<int, int>();
-        //int IssuedColumn = 3 * multipliedValue;
 
         Dictionary<int, Instruction> instructionsWithDependency = new Dictionary<int, Instruction>();
 
-        Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-10 * 3}{"Retired Instruction",-10 * 2}");
-        Console.WriteLine(new string('-', 10 * (6)));
-
-        // Run until all instructions are retired
-        while (instructionIndex < totalInstructions || retireCycles.Count > 0)
+        if (_issue_slots == 3)
         {
+            Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-50}{"Retired Instruction",-20}");
+            Console.WriteLine(new string('-', 90));
+        }
+        else
+        {
+            Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-30}{"Retired Instruction",-20}");
+            Console.WriteLine(new string('-', 60));
+        }
 
-            if (_currentCycle > 20)
-            {
-                Console.WriteLine("\nSurpassed 20 cycles, Loop is ending\n");
-                break;
-            }
+        // Run until all instructions are retired and until all instructions have been retired 
+        while (instructionIndex < totalInstructions || retireCycles.Count > 0 || instructionsWithDependency.Count > 0)
+        {
 
             _currentCycle++;
             string issuedInstruction = "";
@@ -388,38 +410,28 @@ public class Processor
             // Issue instructions if slots are free and not stalled
             for (int i = 0; i < _issue_slots; i++)
             {
-                //This condition says that if no instructions are being issued, including those in the instructionwithDependency dictionary, then the loop is broken
+
+                //This condition says that if no instructions are being issued, including those in the instructionwithDependency dictionary
+                //then the loop is broken
                 if (instructionIndex >= totalInstructions && instructionsWithDependency.Count() == 0)
+                {
+                    //Console.WriteLine("\nAll instructions have been issued, so we break the loop\n");
                     break;
+                }
 
                 //It should now check if an instruction with dependency is ready
-                //If any of these instructions is not ready, we continue with everything, it doesnt leave an empty issue slot behing
+                //If any of these instructions is not ready, we continue with everything, it doesnt leave an empty issue slot behind
 
                 //This list allows us to remove instructions from the dependency instruction dictionary that have already been issued
                 List<int> InstructionsToRemove = new List<int>();
 
                 //This code only leaves an empty issue slot when the original run of the instructions has a dependency
-                //Console.WriteLine("\nTrying to go through the Instructions with dependency list");
-                //Console.WriteLine("Value of the amount of issue slots used: " + i + "\n");
-
-                //Will go eat
-                //It seems it is entering this even though the first it goes through this, it should be empty
 
                 foreach (KeyValuePair<int, Instruction> DependencyInstruction in instructionsWithDependency)
                 {
-                    /*
-                    Console.WriteLine("\n----------------\n");
-                    Console.WriteLine(" A dependency instruction: " + DependencyInstruction + " ");
-                    Console.WriteLine("\n----------------\n");
-                    */
-
-                    //Console.WriteLine(" Value of i: " + i + " ----- Value of Issue Slots being used: " + _issue_slots + "\n");
 
                     if (i < _issue_slots)
                     {
-                        //Console.WriteLine("\nAn instruction with dependencies is trying to be issued\n");
-
-                        // _scheduler.PrintDictionaries();
 
                         var instructionD = _instructions[DependencyInstruction.Key];
 
@@ -427,31 +439,21 @@ public class Processor
                         {
                             //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
                             //The retire Cycles dictionary tells us when an instruction is ready to be retired
-                            Console.WriteLine("\nAn instruction with dependencies is being issued\n");
+
                             issuedInstruction += DependencyInstruction.Key + 1 + "." + DependencyInstruction.Value.ToString() + " ";
                             retireCycles.Add(DependencyInstruction.Key, _currentCycle + DependencyInstruction.Value.CycleCost);
+                            InstructionsToRemove.Add(DependencyInstruction.Key);
                             i++;
-                        }
-                        else
-                        {
-                            // Dependency detected, continue progressing cycles
-                            //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
-                            //break;
-                            //Console.WriteLine("The instruction with dependencies still has dependencies\n");
                         }
 
                     }
 
                 }
 
-                foreach (var IssuedInstruction in InstructionsToRemove)
+                foreach (var IssuedInstruction2 in InstructionsToRemove)
                 {
-                    instructionsWithDependency.Remove(IssuedInstruction); // Safely remove instructions from the dictionary after it was issued
+                    instructionsWithDependency.Remove(IssuedInstruction2); // Safely remove instructions from the dictionary after it was issued
                 }
-
-                // Console.WriteLine("\nSucessfully went through the Instructions with dependency list");
-
-                //Console.WriteLine("Value of the amount of issue slots used: " + i + "\n");
 
                 //Makes sure that if two or more issue slots have been used then we can't go in the normal instruction
                 if (i > _issue_slots)
@@ -459,8 +461,7 @@ public class Processor
                     break;
                 }
 
-                //Console.WriteLine("Sucessfully went through the Instructions with dependency list\n");
-
+                //This condition breaks the loop if the instructions have been issued in order were all ran
                 if (instructionIndex >= totalInstructions)
                     break;
 
@@ -473,14 +474,13 @@ public class Processor
                     //The retire Cycles dictionary tells us when an instruction is ready to be retired
                     issuedInstruction += instructionIndex + 1 + "." + instruction.ToString() + " ";
                     retireCycles.Add(instructionIndex, _currentCycle + instruction.CycleCost);
-                    //instructionIndex++;
 
                 }
                 else
                 {
                     // Dependency detected, continue progressing cycles
                     //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
-                    //instructionsWithDependency.Add(instructionIndex, instruction);
+                    instructionsWithDependency.Add(instructionIndex, instruction);
                     //break;
                 }
 
@@ -516,10 +516,27 @@ public class Processor
             }
 
             // Print the cycle summary
-            Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-10 * 3}{retiredInstruction,-10 * 2}");
+
+            if (_issue_slots == 3)
+            {
+                Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-50}{retiredInstruction,-20}");
+            }
+            else
+            {
+                Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-30}{retiredInstruction,-20}");
+            }
+
         }
 
-        Console.WriteLine(new string('-', 10 * (6)));
+        if (_issue_slots == 3)
+        {
+            Console.WriteLine(new string('-', 90));
+        }
+        else
+        {
+            Console.WriteLine(new string('-', 60));
+        }
+
         Console.WriteLine("Execution completed.");
     }
 }
@@ -528,23 +545,15 @@ public static class Program
 {
     public static void Main()
     {
-
+        //Console.WriteLine("Current Directory: " + Directory.GetCurrentDirectory());
         //Needs to make sure the file path of the instructions.txt is the correct one, this cannot be shortened 
 
-        var instructions = LoadInstructions("C:\\Users\\jairo\\OneDrive\\Documentos\\GitHub\\Computer-Architecture-Project\\instructions.txt");
-        //Small test that makes sure the instruction are read in the correct way
-        /*
-        foreach (var instruction in instructions)
-        {
-            // Print the class name of each instruction
-            Console.WriteLine(instruction);
-        }
-        */
+        var instructions = LoadInstructions(@"C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\Instructions-Project\instructions.txt");
 
         //Runs the processor with single instruction, in order, with one issue slot
         var processor = new Processor(instructions, 1, 1);
-        var processorInOrder = new Processor(instructions, 2, 1);
-        var processorOutofOrder = new Processor(instructions, 3, 1);
+        var processorInOrder = new Processor(instructions, 2, 2);
+        var processorOutofOrder = new Processor(instructions, 3, 3);
 
     }
 
