@@ -407,20 +407,23 @@ public class Processor
 
                 foreach (KeyValuePair<int, Instruction> DependencyInstruction in instructionsWithDependency)
                 {
-
+                    /*
                     Console.WriteLine("\n----------------\n");
                     Console.WriteLine(" A dependency instruction: " + DependencyInstruction + " ");
                     Console.WriteLine("\n----------------\n");
+                    */
 
                     //Console.WriteLine(" Value of i: " + i + " ----- Value of Issue Slots being used: " + _issue_slots + "\n");
 
                     if (i < _issue_slots)
                     {
-                        Console.WriteLine("\nAn instruction with dependencies is trying to be issued\n");
+                        //Console.WriteLine("\nAn instruction with dependencies is trying to be issued\n");
 
-                        _scheduler.PrintDictionaries();
+                        // _scheduler.PrintDictionaries();
 
-                        if (_scheduler.IsReady(DependencyInstruction.Value))
+                        var instructionD = _instructions[DependencyInstruction.Key];
+
+                        if (_scheduler.IsReady(instructionD))
                         {
                             //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
                             //The retire Cycles dictionary tells us when an instruction is ready to be retired
@@ -434,7 +437,7 @@ public class Processor
                             // Dependency detected, continue progressing cycles
                             //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
                             //break;
-                            Console.WriteLine("The instruction with dependencies still has dependencies\n");
+                            //Console.WriteLine("The instruction with dependencies still has dependencies\n");
                         }
 
                     }
@@ -470,13 +473,14 @@ public class Processor
                     //The retire Cycles dictionary tells us when an instruction is ready to be retired
                     issuedInstruction += instructionIndex + 1 + "." + instruction.ToString() + " ";
                     retireCycles.Add(instructionIndex, _currentCycle + instruction.CycleCost);
+                    //instructionIndex++;
 
                 }
                 else
                 {
                     // Dependency detected, continue progressing cycles
                     //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
-                    instructionsWithDependency.Add(instructionIndex, instruction);
+                    //instructionsWithDependency.Add(instructionIndex, instruction);
                     //break;
                 }
 
