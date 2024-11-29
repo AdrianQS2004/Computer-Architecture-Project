@@ -94,16 +94,7 @@ namespace Arquitecture_Project
             Dictionary<int, int> retireCycles = new Dictionary<int, int>();
             int IssuedColumn = 3 * multipliedValue;
 
-            if (_issue_slots == 3)
-            {
-                Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-55}{"Retired Instruction",-20}");
-                Console.WriteLine(new string('-', 100));
-            }
-            else
-            {
-                Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-40}{"Retired Instruction",-20}");
-                Console.WriteLine(new string('-', 70));
-            }
+            PrintCycleHeader(_issue_slots);
 
             // Run until all instructions are retired
             while (instructionIndex < totalInstructions || retireCycles.Count > 0)
@@ -127,7 +118,7 @@ namespace Arquitecture_Project
                         //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
                         //The retire Cycles dictionary tells us when an instruction is ready to be retired
 
-                        if (instructionIndex < 10)
+                        if (instructionIndex < 9)
                         {
                             issuedInstruction += instructionIndex + 1 + ". " + instruction.ToString() + "  ";
                         }
@@ -178,14 +169,7 @@ namespace Arquitecture_Project
                 }
 
                 // Print the cycle summary
-                if (_issue_slots == 3)
-                {
-                    Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-55}{retiredInstruction,-20}");
-                }
-                else
-                {
-                    Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-40}{retiredInstruction,-20}");
-                }
+                PrintCycleSummary(_currentCycle, issuedInstruction, retiredInstruction, _issue_slots);
 
 
             }
@@ -210,18 +194,9 @@ namespace Arquitecture_Project
 
             Dictionary<int, Instruction> instructionsWithDependency = new Dictionary<int, Instruction>();
 
-            if (_issue_slots == 3)
-            {
-                Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-55}{"Retired Instruction",-20}");
-                Console.WriteLine(new string('-', 100));
-            }
-            else
-            {
-                Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-40}{"Retired Instruction",-20}");
-                Console.WriteLine(new string('-', 70));
-            }
+            PrintCycleHeader(_issue_slots);
 
-            // Run until all instructions are retired and until all instructions have been retired 
+            // Run until all instructions are retired and until all instructions with dependencies have been retired 
             while (instructionIndex < totalInstructions || retireCycles.Count > 0 || instructionsWithDependency.Count > 0)
             {
 
@@ -261,7 +236,7 @@ namespace Arquitecture_Project
                             {
                                 //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
                                 //The retire Cycles dictionary tells us when an instruction is ready to be retired
-                                if (DependencyInstruction.Key < 10)
+                                if (DependencyInstruction.Key < 9)
                                 {
                                     issuedInstruction += DependencyInstruction.Key + 1 + ". " + DependencyInstruction.Value.ToString() + "  ";
                                 }
@@ -304,7 +279,7 @@ namespace Arquitecture_Project
                         //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
                         //The retire Cycles dictionary tells us when an instruction is ready to be retired
 
-                        if (instructionIndex < 10)
+                        if (instructionIndex < 9)
                         {
                             issuedInstruction += instructionIndex + 1 + ". " + instruction.ToString() + "  ";
                         }
@@ -360,14 +335,7 @@ namespace Arquitecture_Project
 
                 // Print the cycle summary
 
-                if (_issue_slots == 3)
-                {
-                    Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-55}{retiredInstruction,-20}");
-                }
-                else
-                {
-                    Console.WriteLine($"{_currentCycle,-10}{issuedInstruction,-40}{retiredInstruction,-20}");
-                }
+                PrintCycleSummary(_currentCycle, issuedInstruction, retiredInstruction, _issue_slots);
 
             }
 
@@ -382,5 +350,32 @@ namespace Arquitecture_Project
 
             Console.WriteLine("Execution completed.");
         }
+
+        private void PrintCycleSummary(int currentCycle, string issuedInstruction, string retiredInstruction, int issueSlots)
+        {
+            if (issueSlots == 3)
+            {
+                Console.WriteLine($"{currentCycle,-10}{issuedInstruction,-55}{retiredInstruction,-20}");
+            }
+            else
+            {
+                Console.WriteLine($"{currentCycle,-10}{issuedInstruction,-40}{retiredInstruction,-20}");
+            }
+        }
+
+        private void PrintCycleHeader(int issueSlots)
+        {
+            if (issueSlots == 3)
+            {
+                Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-55}{"Retired Instruction",-20}");
+                Console.WriteLine(new string('-', 100));
+            }
+            else
+            {
+                Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-40}{"Retired Instruction",-20}");
+                Console.WriteLine(new string('-', 70));
+            }
+        }
+
     }
 }

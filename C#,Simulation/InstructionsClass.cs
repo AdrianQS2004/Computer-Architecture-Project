@@ -37,7 +37,7 @@ namespace Arquitecture_Project
 
             if (expression == "Store" || expression == "Load")
             {
-                return new Instruction(dest, null, expression, null, CycleCostEnum[expression]);
+                return new Instruction(dest, "", expression, "", CycleCostEnum[expression]);
             }
 
             var exprParts = expression.Split(' ');
