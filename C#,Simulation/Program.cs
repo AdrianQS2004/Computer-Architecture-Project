@@ -15,8 +15,8 @@ namespace Arquitecture_Project
 
             //Runs the processor with single instruction, in order, with one issue slot
             var processor = new Processor(instructions, 1, 1);
-            var processorInOrder = new Processor(instructions, 2, 2);
-            var processorOutofOrder = new Processor(instructions, 3, 2);
+            var processorInOrder = new Processor(instructions, 2, 3);
+            var processorOutofOrder = new Processor(instructions, 3, 3);
 
         }
 
