@@ -148,23 +148,27 @@ namespace Arquitecture_Project
                     }
 
                 }
+                //Need to change the logic so it works only in order
 
                 List<int> cyclesToRemove = new List<int>();
 
                 // Retire instructions that have completed
-                foreach (KeyValuePair<int, int> cycle in retireCycles)
+                foreach (var key in retireCycles.Keys.OrderBy(x => x)) // Sort keys in ascending order
                 {
-                    //If a value in retired cycles is the same as the current amount of cycles, then the instructions has been retired
-                    if (_currentCycle == cycle.Value)
+                    if (_currentCycle >= retireCycles[key])
                     {
-                        //Removes the numbers from the tables in the Scheduler, meaning the registers have been freed up
-                        _scheduler.RetireInstruction(_instructions[cycle.Key - 1]);
+                        // Removes the numbers from the tables in the Scheduler, meaning the registers have been freed up
+                        _scheduler.RetireInstruction(_instructions[key - 1]);
 
-                        //Sums the retired instructions into the variable that will be printed
-                        retiredInstruction += $"Instruction {cycle.Key} ";
+                        // Sums the retired instructions into the variable that will be printed
+                        retiredInstruction += $"Instruction {key} ";
 
-                        //Removes the retired instruction from retire cycles
-                        cyclesToRemove.Add(cycle.Key);
+                        // Adds the retired instruction to the list for removal
+                        cyclesToRemove.Add(key);
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
 
