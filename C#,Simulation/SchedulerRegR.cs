@@ -3,10 +3,12 @@ namespace Arquitecture_Project
 {
     public class SchedulerRegR
     {
-
+        //These two dictionaries help us keep track on which registers are currently being read and written to
         private Dictionary<string, int> RegsRead = new Dictionary<string, int>();
         private Dictionary<string, int> RegsWritten = new Dictionary<string, int>();
 
+        //This class is very similar but has some key differences to the normal scheduler class
+        //This version of the scheduler implements register renaming, so I will only explain the new methods
         public SchedulerRegR()
         {
 
@@ -31,6 +33,8 @@ namespace Arquitecture_Project
             return false;
         }
 
+        //This method will apply to the destination of the instruction the main idea of register renaming
+        //The destination will be changed to one of the S registers to avoid the WAR and WAW dependencies
         private bool ApplyRegisterRenaming(Instruction instruction)
         {
             // Get the destination register
@@ -46,12 +50,15 @@ namespace Arquitecture_Project
 
             instruction.Dest = renamedRegister;
 
+            //If the S register is not being used, we reserve the register in the table
             if (CheckForDependecies(instruction) == 0)
             {
                 RegsWritten[instruction.Dest] += 1;
                 return true;
             }
 
+            //If for some reason the S register being called up is occupied, then we change the instruction
+            //dest variable to the original one
             renamedRegister = "R" + regNum;
 
             instruction.Dest = renamedRegister;
@@ -120,6 +127,7 @@ namespace Arquitecture_Project
 
         }
 
+        //We add the new digital registers that will help us execute register renaming
         private void SetUpDictionaries()
         {
 

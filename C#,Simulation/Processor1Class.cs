@@ -112,7 +112,7 @@ namespace Arquitecture_Project
 
                     var instruction = _instructions[instructionIndex];
 
-                    // Check dependencies before issuing, This method also adds to a table, the registers that were read and written in the current Issued instruction
+                    // Check if the instruction has dependencies before issuing
                     if (_scheduler.IsReady(instruction))
                     {
                         //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
@@ -139,12 +139,16 @@ namespace Arquitecture_Project
                     }
 
                 }
-                //Need to change the logic so it works only in order
 
+                //This part of the code retires instructions in order
+                //In this list we add instructions that were retired to remove from the retire cycles dictionary
                 List<int> cyclesToRemove = new List<int>();
 
                 // Retire instructions that have completed
-                foreach (var key in retireCycles.Keys.OrderBy(x => x)) // Sort keys in ascending order
+                // What the loop does is that it searches for the lowest number that was issued, and if it can't be retired yet
+                // the loop breaks, meaning we need to retire instructions in order to print whats needed
+
+                foreach (var key in retireCycles.Keys.OrderBy(x => x))
                 {
                     if (_currentCycle >= retireCycles[key])
                     {
@@ -204,12 +208,12 @@ namespace Arquitecture_Project
                 string issuedInstruction = "";
                 string retiredInstruction = "";
 
-                // Issue instructions if slots are free and not stalled
+                // Tries to issues as many instructions in the cycle as the amount of issue slots
                 for (int i = 0; i < _issue_slots; i++)
                 {
 
-                    //This condition says that if no instructions are being issued, including those in the instructionwithDependency dictionary
-                    //then the loop is broken
+                    //This condition says that if no instructions is being issued, including those in the instructionwithDependency dictionary
+                    //then the loop is broken, helps us avoid entering a dictionary that simply doesn't exist
                     if (instructionIndex >= totalInstructions && instructionsWithDependency.Count() == 0)
                     {
                         //Console.WriteLine("\nAll instructions have been issued, so we break the loop\n");
@@ -217,7 +221,7 @@ namespace Arquitecture_Project
                     }
 
                     //It should now check if an instruction with dependency is ready
-                    //If any of these instructions is not ready, we continue with everything, it doesnt leave an empty issue slot behind
+                    //If any of these instructions is not ready, we continue with everything
 
                     //This list allows us to remove instructions from the dependency instruction dictionary that have already been issued
                     List<int> InstructionsToRemove = new List<int>();
@@ -267,13 +271,13 @@ namespace Arquitecture_Project
                         break;
                     }
 
-                    //This condition breaks the loop if the instructions have been issued in order were all ran
+                    //This condition breaks the loop if the instructions all been issued
                     if (instructionIndex >= totalInstructions)
                         break;
 
                     var instruction = _instructions[instructionIndex];
 
-                    // Check dependencies before issuing, This method also adds to a table, the registers that were read and written in the current Issued instruction
+                    // Check dependencies before issuing
                     if (_scheduler.IsReady(instruction))
                     {
                         //If there are no dependencies, This means the instruction can be issued, which is then put in into the retire cyles
@@ -296,8 +300,10 @@ namespace Arquitecture_Project
                     }
                     else
                     {
-                        // Dependency detected, continue progressing cycles
+                        // Dependency detected, 
                         //Console.WriteLine($"Cycle {_currentCycle}: Dependency detected for {instruction}");
+                        // When a dependency is detected, we add it this dictionary so that in the next cycle
+                        // we can try to issue the instruction with dependency
                         instructionsWithDependency.Add(instructionIndex, instruction);
                         //break;
                     }
@@ -351,15 +357,23 @@ namespace Arquitecture_Project
             Console.WriteLine("Execution completed.");
         }
 
+        //These next functions help us print different sizes of spaces so that it looks clean
+        //No matter the amount of issue slots choosen
         private void PrintCycleSummary(int currentCycle, string issuedInstruction, string retiredInstruction, int issueSlots)
         {
+
             if (issueSlots == 3)
             {
                 Console.WriteLine($"{currentCycle,-10}{issuedInstruction,-55}{retiredInstruction,-20}");
             }
-            else
+            else if (issueSlots == 2)
             {
                 Console.WriteLine($"{currentCycle,-10}{issuedInstruction,-40}{retiredInstruction,-20}");
+            }
+            else
+            {
+                Console.WriteLine($"{currentCycle,-10}{issuedInstruction,-30}{retiredInstruction,-20}");
+
             }
         }
 
@@ -370,10 +384,15 @@ namespace Arquitecture_Project
                 Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-55}{"Retired Instruction",-20}");
                 Console.WriteLine(new string('-', 100));
             }
-            else
+            else if (issueSlots == 2)
             {
                 Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-40}{"Retired Instruction",-20}");
                 Console.WriteLine(new string('-', 70));
+            }
+            else
+            {
+                Console.WriteLine($"{"Cycle",-10}{"Issued Instruction",-30}{"Retired Instruction",-20}");
+                Console.WriteLine(new string('-', 60));
             }
         }
 

@@ -3,6 +3,7 @@ namespace Arquitecture_Project
     public class Scheduler
     {
 
+        //These two dictionaries help us keep track on which registers are currently being read and written to
         private Dictionary<string, int> RegsRead = new Dictionary<string, int>();
         private Dictionary<string, int> RegsWritten = new Dictionary<string, int>();
 
@@ -13,6 +14,9 @@ namespace Arquitecture_Project
 
         }
 
+        //This method returns true or false if the instruction has a dependency or not
+        //It calls another method that actually checks if we have a dependency, but that method returns 
+        //which specific type of dependency we have
         public bool IsReady(Instruction instruction)
         {
 
@@ -25,6 +29,8 @@ namespace Arquitecture_Project
             return false;
         }
 
+        //This method removes the fact that a register is being read or written to
+        //It essentially clears up the reservation of the instruction
         public void RetireInstruction(Instruction instruction)
         {
 
@@ -36,9 +42,11 @@ namespace Arquitecture_Project
             }
         }
 
+        //Checks if we have a dependency, and if we do it tells us which dependecy it is
+        //This will be helpful for register renaming, even though that will be implemented in another class
         private int CheckForDependecies(Instruction instruction)
         {
-            //Check for ReadAfterWrite
+            //Checks for ReadAfterWrite
 
             //Would check the Regs to make sure the operands are not being written to
             //ReadAfters cannot happen if the instruction is a Store or a Load
@@ -74,6 +82,7 @@ namespace Arquitecture_Project
 
         }
 
+        //This method is called to reserve which registers are being read and wirtten to
         private void UpdateDictionaries(Instruction instruction)
         {
 
@@ -86,6 +95,7 @@ namespace Arquitecture_Project
 
         }
 
+        //this method sets up the table that will be used to make the scheduler work
         private void SetUpDictionaries()
         {
 
@@ -108,6 +118,7 @@ namespace Arquitecture_Project
             RegsWritten.Add("R7", 0);
         }
 
+        //This is a debug method that help us make sure the table where being modified correctly
         public void PrintDictionaries()
         {
             Console.WriteLine("RegsRead Dictionary:");

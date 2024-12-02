@@ -26,6 +26,7 @@ namespace Arquitecture_Project
             CycleCost = cycleCost;
         }
 
+        //Parses an instruction from the text file and saves it in the instruction class
         public static Instruction Parse(string line)
         {
             var parts = line.Split(" = ", StringSplitOptions.TrimEntries);
@@ -54,6 +55,7 @@ namespace Arquitecture_Project
             return new Instruction(dest, leftOperand, op, rightOperand, CycleCostEnum[op]);
         }
 
+        //Simply a function that helps us print the values inside of this class
         public override string ToString()
         {
             if (Operator == "Store")
