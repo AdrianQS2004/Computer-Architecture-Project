@@ -2,10 +2,10 @@ namespace Arquitecture_Project
 {
     public class Instruction
     {
-        public string Dest { get; }
-        public string LeftOperand { get; }
+        public string Dest { get; set; }
+        public string LeftOperand { get; set; }
         public string Operator { get; }
-        public string RightOperand { get; }
+        public string RightOperand { get; set; }
         public int CycleCost { get; }
 
         private static readonly Dictionary<string, int> CycleCostEnum = new Dictionary<string, int>
