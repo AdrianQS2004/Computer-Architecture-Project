@@ -15,11 +15,14 @@ namespace Arquitecture_Project
 
             //Runs the processor with single instruction, in order, with one issue slot
             //var processor = new Processor(instructions, 1, 1);
-            //var processorInOrder = new Processor(instructions, 2, 2);
-            var processorOutofOrder = new Processor(instructions, 3, 1);
 
-            //var processorInOrderRegR = new ProcessorRegsR(instructions, 2, 2);
-            var processorOutofOrderRegR = new ProcessorRegsR(instructions, 3, 1);
+            //Runs the processor with the Superscalar configurations
+            //var processorInOrder = new Processor(instructions, 2, 2);
+            //var processorOutofOrder = new Processor(instructions, 3, 1);
+
+            //Runs the processor with the Superscalar configurations but it has an implementation of register renaming
+            var processorInOrderRegR = new ProcessorRegsR(instructions, 2, 3);
+            var processorOutofOrderRegR = new ProcessorRegsR(instructions, 3, 3);
         }
 
         private static List<Instruction> LoadInstructions(string filePath)
