@@ -35,6 +35,15 @@ namespace Arquitecture_Project
 
         //This method will apply to the destination of the instruction the main idea of register renaming
         //The destination will be changed to one of the S registers to avoid the WAR and WAW dependencies
+        //This method has a major flaw that happens very little, but it because of the ambiguity of how register renaming works, I keep it as is,
+        //Siimply, the flaw can only be changed if have different logic for the register renaming, and I wasn't able to change that logic
+        //The error simply is because of the way I issue the renamed registers.
+        //Following the case study from the professor, the renamed registers should be issued as a stack. Meaning in the first renamed register we issue S0, no matter which register it came from
+        //This helps us to make sure that if we have two WA dependencies on the same register, we can still issue both instructions using renamed registers
+        //My logic does not allow this. Because I the renamed register is chosen by the number of the register that needs to be renamed
+        //Meaning if we have a WA on R3, we change the register to S3. Now this works mostly, the main problem is that if we get another
+        //WA on R3, we will get a delay on a WA dependency. This is definetly not ideal. I could implemente the stack logic, the problem is that
+        //Keeping charge on the logic that the regiter renaming rules method. I hope this error is understandable.
         private bool ApplyRegisterRenaming(Instruction instruction)
         {
             // Get the destination register
@@ -42,7 +51,6 @@ namespace Arquitecture_Project
 
             // Get the register number from the destination register
             int regNum = int.Parse(destinationRegister.Substring(1));
-            //Console.WriteLine($"Currently on register R{regNum}");
 
             // Create renamed register name with S prefix
             string renamedRegister = "S" + regNum;
@@ -65,6 +73,38 @@ namespace Arquitecture_Project
             instruction.Dest = renamedRegister;
 
             return false;
+        }
+        //THis method will change the values that need to be read with the new register
+        //This logic works and simulates the read after dependencies if the renamed register is used
+        //It has problem it we try to think about the register having actual values, for if we ignore it, we can mostly get the correct amount of cycles
+        public void RegisterRenamingRules(Instruction instruction)
+        {
+
+            string LeftRegisterRR = instruction.LeftOperand;
+
+            // Get the register number from the destination register
+            int regNum1 = int.Parse(LeftRegisterRR.Substring(1));
+
+            string RightRegisterRR = instruction.RightOperand;
+
+            int regNum2 = int.Parse(RightRegisterRR.Substring(1));
+
+            // Create renamed register name with S prefix
+            string renamedRegisterLeft = "S" + regNum1;
+            string renamedRegisterRight = "S" + regNum2;
+
+            //If the renamed register is being written to, then we change the value of the instruction that was going to be issued
+            //We check both operand registers
+            if (RegsWritten[renamedRegisterLeft] == 1)
+            {
+                instruction.LeftOperand = renamedRegisterLeft;
+            }
+
+            if (RegsWritten[renamedRegisterRight] == 1)
+            {
+                instruction.RightOperand = renamedRegisterRight;
+            }
+
         }
 
         public void RetireInstruction(Instruction instruction)
@@ -113,35 +153,6 @@ namespace Arquitecture_Project
 
             //If it reached the true, it means this has no dependecies
             return 0;
-
-        }
-
-        public void RegisterRenamingRules(Instruction instruction)
-        {
-
-            string LeftRegisterRR = instruction.LeftOperand;
-
-            // Get the register number from the destination register
-            int regNum1 = int.Parse(LeftRegisterRR.Substring(1));
-
-            string RightRegisterRR = instruction.RightOperand;
-
-            int regNum2 = int.Parse(RightRegisterRR.Substring(1));
-
-            // Create renamed register name with S prefix
-            string renamedRegisterLeft = "S" + regNum1;
-            string renamedRegisterRight = "S" + regNum2;
-
-            if (RegsWritten[renamedRegisterLeft] == 1)
-            {
-                instruction.LeftOperand = renamedRegisterLeft;
-            }
-
-            if (RegsWritten[renamedRegisterRight] == 1)
-            {
-                instruction.RightOperand = renamedRegisterRight;
-            }
-            //itruction.Dest = renamedRegister;
 
         }
 
