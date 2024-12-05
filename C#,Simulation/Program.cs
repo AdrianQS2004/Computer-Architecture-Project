@@ -14,12 +14,12 @@ namespace Arquitecture_Project
             var instructions = LoadInstructions(@"C:\Users\jairo\OneDrive\Documentos\GitHub\Computer-Architecture-Project\Instructions-Project\instructions.txt");
 
             //Runs the processor with single instruction, in order, with one issue slot
-            var processor = new Processor(instructions, 1, 1);
-            var processorInOrder = new Processor(instructions, 2, 1);
+            //var processor = new Processor(instructions, 1, 1);
+            //var processorInOrder = new Processor(instructions, 2, 2);
             var processorOutofOrder = new Processor(instructions, 3, 1);
 
             //var processorInOrderRegR = new ProcessorRegsR(instructions, 2, 2);
-
+            var processorOutofOrderRegR = new ProcessorRegsR(instructions, 3, 1);
         }
 
         private static List<Instruction> LoadInstructions(string filePath)

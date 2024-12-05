@@ -53,7 +53,8 @@ namespace Arquitecture_Project
             //If the S register is not being used, we reserve the register in the table
             if (CheckForDependecies(instruction) == 0)
             {
-                RegsWritten[instruction.Dest] += 1;
+                UpdateDictionaries(instruction);
+                //PrintDictionaries();
                 return true;
             }
 
@@ -112,6 +113,35 @@ namespace Arquitecture_Project
 
             //If it reached the true, it means this has no dependecies
             return 0;
+
+        }
+
+        public void RegisterRenamingRules(Instruction instruction)
+        {
+
+            string LeftRegisterRR = instruction.LeftOperand;
+
+            // Get the register number from the destination register
+            int regNum1 = int.Parse(LeftRegisterRR.Substring(1));
+
+            string RightRegisterRR = instruction.RightOperand;
+
+            int regNum2 = int.Parse(RightRegisterRR.Substring(1));
+
+            // Create renamed register name with S prefix
+            string renamedRegisterLeft = "S" + regNum1;
+            string renamedRegisterRight = "S" + regNum2;
+
+            if (RegsWritten[renamedRegisterLeft] == 1)
+            {
+                instruction.LeftOperand = renamedRegisterLeft;
+            }
+
+            if (RegsWritten[renamedRegisterRight] == 1)
+            {
+                instruction.RightOperand = renamedRegisterRight;
+            }
+            //itruction.Dest = renamedRegister;
 
         }
 

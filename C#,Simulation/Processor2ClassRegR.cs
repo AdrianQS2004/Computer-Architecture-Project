@@ -97,7 +97,7 @@ namespace Arquitecture_Project
             PrintCycleHeader(_issue_slots);
 
             // Run until all instructions are retired
-            while (instructionIndex < totalInstructions || retireCycles.Count > 0)
+            while ((instructionIndex < totalInstructions || retireCycles.Count > 0) && _currentCycle < 70)
             {
                 _currentCycle++;
                 string issuedInstruction = "";
@@ -111,6 +111,11 @@ namespace Arquitecture_Project
                         break;
 
                     var instruction = _instructions[instructionIndex];
+
+                    if (instruction.Operator != "Store" && instruction.Operator != "Load")
+                    {
+                        _scheduler.RegisterRenamingRules(instruction);
+                    }
 
                     // Check dependencies before issuing, This method also adds to a table, the registers that were read and written in the current Issued instruction
                     if (_scheduler.IsReady(instruction))
@@ -272,6 +277,11 @@ namespace Arquitecture_Project
                         break;
 
                     var instruction = _instructions[instructionIndex];
+
+                    if (instruction.Operator != "Store" && instruction.Operator != "Load")
+                    {
+                        _scheduler.RegisterRenamingRules(instruction);
+                    }
 
                     // Check dependencies before issuing, This method also adds to a table, the registers that were read and written in the current Issued instruction
                     if (_scheduler.IsReady(instruction))
