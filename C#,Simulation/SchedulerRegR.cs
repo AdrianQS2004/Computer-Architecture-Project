@@ -40,10 +40,13 @@ namespace Arquitecture_Project
         //The error simply is because of the way I issue the renamed registers.
         //Following the case study from the professor, the renamed registers should be issued as a stack. Meaning in the first renamed register we issue S0, no matter which register it came from
         //This helps us to make sure that if we have two WA dependencies on the same register, we can still issue both instructions using renamed registers
-        //My logic does not allow this. Because I the renamed register is chosen by the number of the register that needs to be renamed
+        //My logic does not allow this. Because in my logic the renamed register is chosen by the number of the register that needs to be renamed
         //Meaning if we have a WA on R3, we change the register to S3. Now this works mostly, the main problem is that if we get another
-        //WA on R3, we will get a delay on a WA dependency. This is definetly not ideal. I could implemente the stack logic, the problem is that
-        //Keeping charge on the logic that the regiter renaming rules method. I hope this error is understandable.
+        //WA on R3 while S3 is being written, we will get a delay on a WA dependency. This is definetly not ideal. 
+        //I could implemente the stack logic, the problem is that
+        //keeping charge on the logic that the regiter renaming rules method. 
+        //I simply coulnd't find a way to update the read registers to the reanmed registers if we followed this logic
+        //I hope this error is understandable.
         private bool ApplyRegisterRenaming(Instruction instruction)
         {
             // Get the destination register
